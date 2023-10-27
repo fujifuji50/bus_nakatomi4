@@ -17,7 +17,7 @@ import math
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# 時刻表マスタ ※祝日はsunday扱い
+# 時刻表マスタ
 def get_today_table(weekday_en, year, month, day):
     master_timetable = {
         "weekday": [
