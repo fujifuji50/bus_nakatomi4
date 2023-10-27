@@ -1,0 +1,253 @@
+# -*- coding: utf-8 -*-
+import logging
+import ask_sdk_core.utils as ask_utils
+
+from ask_sdk_core.skill_builder import SkillBuilder
+from ask_sdk_core.dispatch_components import AbstractRequestHandler
+from ask_sdk_core.dispatch_components import AbstractExceptionHandler
+from ask_sdk_core.handler_input import HandlerInput
+
+from ask_sdk_model import Response
+
+# 日付時刻系インポート
+from datetime import date, datetime, timezone, timedelta
+import jpholiday
+import math
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 時刻表マスタ ※祝日はsunday扱い
+def get_today_table(weekday_en, year, month, day):
+    master_timetable = {
+        "weekday": [
+            datetime(year, month, day, 5, 46, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 03, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 13, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 29, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 38, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 46, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 56, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 03, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 10, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 16, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 22, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 28, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 42, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 48, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 52, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 59, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 11, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 19, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 24, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 32, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 40, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 53, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 45, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 55, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 14, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 34, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 22, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 40, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 42, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 57, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 07, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 21, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 33, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 51, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 59, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 15, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 40, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 49, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 09, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 32, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 45, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 02, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 29, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 47, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 23, 06, 00, tzinfo=timezone(timedelta(hours=9))),
+            ],
+        "sunday": [
+            datetime(year, month, day, 6, 00, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 13, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 24, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 6, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 43, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 7, 59, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 13, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 8, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 9, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 10, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 11, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 12, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 13, 52, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 22, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 14, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 15, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 05, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 20, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 35, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 16, 50, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 00, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 14, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 25, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 39, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 17, 55, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 09, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 25, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 39, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 18, 55, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 10, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 25, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 39, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 19, 55, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 10, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 25, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 39, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 20, 55, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 11, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 24, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 21, 42, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 09, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 32, 00, tzinfo=timezone(timedelta(hours=9))),
+            datetime(year, month, day, 22, 47, 00, tzinfo=timezone(timedelta(hours=9))),
+            ]
+    }
+    return master_timetable[weekday_en];
+
+class LaunchRequestHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        return ask_utils.is_request_type("LaunchRequest")(handler_input)
+
+    def handle(self, handler_input):
+        # 日時取得
+        timezone_tokyo = timezone(timedelta(hours=9))
+        datetime_now_jst = datetime.now(timezone_tokyo)
+        
+        year = datetime_now_jst.year
+        month = datetime_now_jst.month
+        day = datetime_now_jst.day
+        
+        # 曜日判定：月曜0-日曜6
+        weekday = date(year, month, day).weekday()
+        
+        weekday_en = ""
+        if weekday == 6:
+            weekday_en = "sunday"
+        else:
+            weekday_en = "weekday"
+        
+        # 祝日判定
+        if jpholiday.is_holiday(date(year, month, day)):
+            weekday_en = "sunday"
+        
+        # 時刻表取得
+        timetable = get_today_table(weekday_en, year, month, day)
+        
+        # 次とその次のバスを取得
+        next_bus = []
+        for item in timetable:
+            if datetime_now_jst < item:
+                next_bus.append(item)
+        
+        next_bus = next_bus[:2]
+        
+        # リストのサイズで終バス判断し返却値を出し分ける
+        if len(next_bus) == 0:
+            speak_output = "もう今日のバスはありません。"
+        elif len(next_bus) == 1:
+            diff = next_bus[0] - datetime_now_jst
+            minute_after = math.floor(diff.total_seconds()/60)
+            next_bus_hour = next_bus[0].hour
+            next_bus_minute = next_bus[0].minute
+            speak_output = f"次のバスは{minute_after}分後の{next_bus_hour}時{next_bus_minute}分です。このバスが最終です。"
+        else:
+            diff_1 = next_bus[0] - datetime_now_jst
+            minute_after_1 = math.floor(diff_1.total_seconds()/60)
+            diff_2 = next_bus[1] - datetime_now_jst
+            minute_after_2 = math.floor(diff_2.total_seconds()/60)
+            next_bus_hour = next_bus[1].hour
+            next_bus_minute = next_bus[1].minute
+            speak_output = f"次のバスは{minute_after_1}分後です。その次は{minute_after_2}分後の{next_bus_hour}時{next_bus_minute}分です。"
+        
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                # .ask(speak_output) # これがあるとセッションが維持される
+                .set_should_end_session(True) # 1回しゃべったらセッション切る
+                .response
+        )
+
+
+sb = SkillBuilder()
+sb.add_request_handler(LaunchRequestHandler())
+
+lambda_handler = sb.lambda_handler()
